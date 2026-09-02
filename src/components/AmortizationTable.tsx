@@ -49,6 +49,11 @@ interface YearlyTableProps {
   compact?: boolean
 }
 
+function formatSplitPercent(value: number, totalPaid: number): string {
+  if (totalPaid <= 0) return '—'
+  return `${((value / totalPaid) * 100).toFixed(0)}%`
+}
+
 function YearlyTable({ rows, showDisbursement = false }: YearlyTableProps) {
   return (
     <table>
@@ -60,15 +65,15 @@ function YearlyTable({ rows, showDisbursement = false }: YearlyTableProps) {
           <th>EMI paid</th>
           <th>Extra</th>
           <th>Interest</th>
+          <th>Int %</th>
           <th>Principal</th>
+          <th>Prin %</th>
           <th>Balance</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => {
           const totalPaid = row.totalEmi + row.totalExtraPayment
-          const interestPct =
-            totalPaid > 0 ? (row.totalInterest / totalPaid) * 100 : 0
 
           return (
             <tr key={row.year}>
@@ -81,11 +86,14 @@ function YearlyTable({ rows, showDisbursement = false }: YearlyTableProps) {
               )}
               <td>{formatCurrency(row.totalEmi)}</td>
               <td>{formatCurrency(row.totalExtraPayment)}</td>
-              <td>
-                {formatCurrency(row.totalInterest)}
-                <span className="pct"> ({interestPct.toFixed(0)}%)</span>
+              <td>{formatCurrency(row.totalInterest)}</td>
+              <td className="pct-cell">
+                {formatSplitPercent(row.totalInterest, totalPaid)}
               </td>
               <td>{formatCurrency(row.totalPrincipal)}</td>
+              <td className="pct-cell">
+                {formatSplitPercent(row.totalPrincipal, totalPaid)}
+              </td>
               <td>{formatCurrency(row.closingBalance)}</td>
             </tr>
           )
@@ -115,15 +123,15 @@ function MonthlyTable({
           <th>EMI</th>
           <th>Extra</th>
           <th>Interest</th>
+          <th>Int %</th>
           <th>Principal</th>
+          <th>Prin %</th>
           <th>Balance</th>
         </tr>
       </thead>
       <tbody>
         {rows.map((row) => {
           const totalPaid = row.emi + row.extraPayment
-          const interestPct =
-            totalPaid > 0 ? (row.interest / totalPaid) * 100 : 0
 
           return (
             <tr key={row.month}>
@@ -136,11 +144,14 @@ function MonthlyTable({
               )}
               <td>{formatCurrency(row.emi)}</td>
               <td>{formatCurrency(row.extraPayment)}</td>
-              <td>
-                {formatCurrency(row.interest)}
-                <span className="pct"> ({interestPct.toFixed(0)}%)</span>
+              <td>{formatCurrency(row.interest)}</td>
+              <td className="pct-cell">
+                {formatSplitPercent(row.interest, totalPaid)}
               </td>
               <td>{formatCurrency(row.principal)}</td>
+              <td className="pct-cell">
+                {formatSplitPercent(row.principal, totalPaid)}
+              </td>
               <td>{formatCurrency(row.balance)}</td>
             </tr>
           )
@@ -213,18 +224,16 @@ export function ComparisonTables({
 }: ComparisonTablesProps) {
   if (showComparison) {
     return (
-      <section className="comparison-tables">
+      <section className="comparison-tables comparison-tables--stacked">
         <AmortizationTable
           title={sanctionedTitle}
           result={sanctionedResult}
           viewMode={viewMode}
-          compact
         />
         <AmortizationTable
           title={alternateTitle}
           result={alternateResult}
           viewMode={viewMode}
-          compact
           showDisbursement={showDisbursementOnAlternate}
         />
       </section>

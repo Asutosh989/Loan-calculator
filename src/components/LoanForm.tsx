@@ -29,7 +29,8 @@ interface LoanFormProps {
   milestoneTotalPercent: number
   projectYearsLeft: string
   stageCompleted: string
-  stageDisbursedPercent: number
+  clpCumulativePercent: number
+  bankDisbursedPercent: number
   tranchePercent: string
   fullyDisbursedByYear: string
   onAgreementValueChange: (value: string) => void
@@ -73,7 +74,8 @@ export function LoanForm({
   milestoneTotalPercent,
   projectYearsLeft,
   stageCompleted,
-  stageDisbursedPercent,
+  clpCumulativePercent,
+  bankDisbursedPercent,
   tranchePercent,
   fullyDisbursedByYear,
   onAgreementValueChange,
@@ -95,6 +97,11 @@ export function LoanForm({
   onFullyDisbursedByYearChange,
 }: LoanFormProps) {
   const loanYears = Number(tenureYears) || 20
+  const stageNum = Number(stageCompleted)
+  const completedStageLabel =
+    stageNum > 0 && stageNum <= milestones.length
+      ? milestones[stageNum - 1]?.label
+      : null
 
   return (
     <>
@@ -120,7 +127,16 @@ export function LoanForm({
           </label>
 
           <label className="field">
-            <span>Currently disbursed (% of loan)</span>
+            <span>
+              Currently disbursed (% of loan)
+              {stageBasedDisbursement && stageNum > 0 && (
+                <span className="field-label-meta">
+                  {' '}
+                  · Stage {stageCompleted}
+                  {completedStageLabel ? `: ${completedStageLabel}` : ''}
+                </span>
+              )}
+            </span>
             <input
               type="text"
               value={disbursedPercent}
@@ -130,7 +146,8 @@ export function LoanForm({
             />
             {stageBasedDisbursement && (
               <span className="field-hint field-hint--accent">
-                Auto from stage completed ({stageDisbursedPercent.toFixed(1)}%)
+                {clpCumulativePercent.toFixed(1)}% construction due minus your{' '}
+                {contributionPercent}% contribution
               </span>
             )}
           </label>
@@ -138,9 +155,15 @@ export function LoanForm({
           <label className="field">
             <span>Loan amount disbursed today</span>
             <CurrencyDisplay value={disbursedAmount} />
-            <span className="field-hint">
-              Based on completed construction stage
-            </span>
+            {stageBasedDisbursement && stageNum > 0 && completedStageLabel ? (
+              <span className="field-hint">
+                Stage {stageCompleted}: {completedStageLabel}
+              </span>
+            ) : (
+              <span className="field-hint">
+                Based on completed construction stage
+              </span>
+            )}
           </label>
 
           <label className="field">
@@ -257,7 +280,9 @@ export function LoanForm({
           loanYears={loanYears}
           projectYearsLeft={projectYearsLeft}
           stageCompleted={stageCompleted}
-          stageDisbursedPercent={stageDisbursedPercent}
+          clpCumulativePercent={clpCumulativePercent}
+          bankDisbursedPercent={bankDisbursedPercent}
+          contributionPercent={contributionPercent}
           onPlanModeChange={onDisbursementPlanModeChange}
           onMilestonesChange={onMilestonesChange}
           onProjectYearsLeftChange={onProjectYearsLeftChange}

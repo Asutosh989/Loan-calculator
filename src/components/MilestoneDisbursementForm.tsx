@@ -14,7 +14,9 @@ interface MilestoneDisbursementFormProps {
   loanYears: number
   projectYearsLeft: string
   stageCompleted: string
-  stageDisbursedPercent: number
+  clpCumulativePercent: number
+  bankDisbursedPercent: number
+  contributionPercent: string
   onPlanModeChange: (mode: DisbursementPlanMode) => void
   onMilestonesChange: (milestones: MilestoneRowState[]) => void
   onProjectYearsLeftChange: (value: string) => void
@@ -38,7 +40,9 @@ export function MilestoneDisbursementForm({
   loanYears,
   projectYearsLeft,
   stageCompleted,
-  stageDisbursedPercent,
+  clpCumulativePercent,
+  bankDisbursedPercent,
+  contributionPercent,
   onPlanModeChange,
   onMilestonesChange,
   onProjectYearsLeftChange,
@@ -118,8 +122,9 @@ export function MilestoneDisbursementForm({
               </select>
               {completedLabel && (
                 <span className="field-hint field-hint--accent">
-                  Currently disbursed: {stageDisbursedPercent.toFixed(1)}% of
-                  loan (based on stage completed)
+                  Bank disbursed: {bankDisbursedPercent.toFixed(1)}% of loan (
+                  {clpCumulativePercent.toFixed(1)}% construction minus your{' '}
+                  {contributionPercent}% contribution)
                 </span>
               )}
             </label>

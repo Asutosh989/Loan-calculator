@@ -18,6 +18,7 @@ import {
 } from './utils/loanCalculations'
 import {
   applyTimelineToRows,
+  bankDisbursedPercentFromClp,
   buildDisbursementMap,
   cumulativePercentFromRows,
   parseMilestoneRows,
@@ -69,7 +70,7 @@ function App() {
   const [agreementValue, setAgreementValue] = useState(() =>
     String(DEFAULT_AGREEMENT_VALUE),
   )
-  const [gender, setGender] = useState<Gender>('male')
+  const [gender, setGender] = useState<Gender>('female')
   const [contributionPercent, setContributionPercent] = useState('10')
   const [interestRate, setInterestRate] = useState('7.2')
   const [tenureYears, setTenureYears] = useState('20')
@@ -77,13 +78,13 @@ function App() {
     useState(true)
   const [disbursementPlanMode, setDisbursementPlanMode] =
     useState<DisbursementPlanMode>('milestone')
-  const [projectYearsLeft, setProjectYearsLeft] = useState('4')
-  const [stageCompleted, setStageCompleted] = useState('2')
+  const [projectYearsLeft, setProjectYearsLeft] = useState('2')
+  const [stageCompleted, setStageCompleted] = useState('7')
   const [milestones, setMilestones] = useState<MilestoneRowState[]>(() =>
     towerScheduleToRows(4),
   )
   const [tranchePercent, setTranchePercent] = useState('25')
-  const [fullyDisbursedByYear, setFullyDisbursedByYear] = useState('4')
+  const [fullyDisbursedByYear, setFullyDisbursedByYear] = useState('2')
   const [useCustomEmi, setUseCustomEmi] = useState(false)
   const [customEmi, setCustomEmi] = useState('')
   const [emiIncreasePercent, setEmiIncreasePercent] = useState('0')
@@ -114,20 +115,28 @@ function App() {
   const stageBasedDisbursement =
     stagedDisbursementEnabled && disbursementPlanMode === 'milestone'
 
-  const stageDisbursedPercent = useMemo(
+  const clpCumulativePercent = useMemo(
     () => cumulativePercentFromRows(milestones, stageCompletedNum),
     [milestones, stageCompletedNum],
   )
 
+  const bankDisbursedPercent = useMemo(
+    () =>
+      contribution !== null
+        ? bankDisbursedPercentFromClp(clpCumulativePercent, contribution)
+        : clpCumulativePercent,
+    [clpCumulativePercent, contribution],
+  )
+
   const disbursed =
     sanctioned !== null
-      ? Math.round((sanctioned * stageDisbursedPercent) / 100)
+      ? Math.round((sanctioned * bankDisbursedPercent) / 100)
       : null
 
   const disbursedPercentStr =
-    stageDisbursedPercent % 1 === 0
-      ? String(stageDisbursedPercent)
-      : stageDisbursedPercent.toFixed(1)
+    bankDisbursedPercent % 1 === 0
+      ? String(bankDisbursedPercent)
+      : bankDisbursedPercent.toFixed(1)
 
   const sanctionedAmountStr =
     sanctioned !== null ? String(sanctioned) : ''
@@ -215,6 +224,7 @@ function App() {
       const disbursementByMonth = buildDisbursementMap(
         sanctioned,
         parsedMilestones.milestones,
+        contribution ?? 0,
       )
       return buildMilestoneDisbursementSchedule({
         sanctionedAmount: sanctioned,
@@ -315,7 +325,8 @@ function App() {
         milestoneTotalPercent={milestoneTotalPercent}
         projectYearsLeft={projectYearsLeft}
         stageCompleted={stageCompleted}
-        stageDisbursedPercent={stageDisbursedPercent}
+        clpCumulativePercent={clpCumulativePercent}
+        bankDisbursedPercent={bankDisbursedPercent}
         tranchePercent={tranchePercent}
         fullyDisbursedByYear={fullyDisbursedByYear}
         onAgreementValueChange={setAgreementValue}

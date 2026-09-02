@@ -141,6 +141,26 @@ export function cumulativePercentFromRows(
   }, 0)
 }
 
+/** Bank loan share after excluding the buyer's contribution at each CLP stage. */
+export function bankDisbursedPercentFromClp(
+  clpCumulativePercent: number,
+  contributionPercent: number,
+): number {
+  return Math.max(0, clpCumulativePercent - contributionPercent)
+}
+
+export function bankDisbursedAmountFromClp(
+  sanctionedAmount: number,
+  clpCumulativePercent: number,
+  contributionPercent: number,
+): number {
+  const percent = bankDisbursedPercentFromClp(
+    clpCumulativePercent,
+    contributionPercent,
+  )
+  return Math.round((sanctionedAmount * percent) / 100)
+}
+
 export function parseMilestoneRows(
   rows: MilestoneRowState[],
   loanYears: number,
@@ -187,12 +207,25 @@ export function parseMilestoneRows(
 export function buildDisbursementMap(
   sanctionedAmount: number,
   milestones: DisbursementMilestone[],
+  contributionPercent = 0,
 ): Map<number, number> {
   const map = new Map<number, number>()
+  let cumulativeClp = 0
+  let previousBankCumulative = 0
 
   for (const milestone of milestones) {
+    cumulativeClp += milestone.percent
+    const bankCumulative = bankDisbursedPercentFromClp(
+      cumulativeClp,
+      contributionPercent,
+    )
+    const tranchePercent = bankCumulative - previousBankCumulative
+    previousBankCumulative = bankCumulative
+
+    if (tranchePercent <= 0) continue
+
     const monthIndex = milestoneToMonthIndex(milestone.year, milestone.month)
-    const amount = Math.round((sanctionedAmount * milestone.percent) / 100)
+    const amount = Math.round((sanctionedAmount * tranchePercent) / 100)
     map.set(monthIndex, (map.get(monthIndex) ?? 0) + amount)
   }
 
