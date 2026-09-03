@@ -58,15 +58,28 @@ export function createMilestoneId(): string {
 export function distributeStagesOverYears(
   definitions: MilestoneDefinition[],
   yearsLeft: number,
+  stageCompleted = 0,
 ): Omit<DisbursementMilestone, 'id'>[] {
   const count = definitions.length
   const totalMonths = Math.max(1, yearsLeft * 12)
+  const remainingCount = Math.max(0, count - stageCompleted)
 
   return definitions.map((definition, index) => {
+    if (index < stageCompleted) {
+      return {
+        label: definition.label,
+        percent: definition.percent,
+        year: 0,
+        month: 0,
+      }
+    }
+
+    const posInRemaining = index - stageCompleted
     const monthIndex =
-      count === 1
-        ? 1
-        : 1 + Math.round((index / (count - 1)) * (totalMonths - 1))
+      remainingCount <= 1
+        ? totalMonths
+        : 1 +
+          Math.round((posInRemaining / (remainingCount - 1)) * (totalMonths - 1))
     const year = Math.floor((monthIndex - 1) / 12) + 1
     const month = ((monthIndex - 1) % 12) + 1
 
@@ -79,21 +92,27 @@ export function distributeStagesOverYears(
   })
 }
 
-export function towerScheduleToRows(yearsLeft: number): MilestoneRowState[] {
-  return distributeStagesOverYears(TOWER_SCHEDULE_DEFINITIONS, yearsLeft).map(
-    (milestone) => ({
-      id: createMilestoneId(),
-      label: milestone.label,
-      percent: String(milestone.percent),
-      year: String(milestone.year),
-      month: String(milestone.month),
-    }),
-  )
+export function towerScheduleToRows(
+  yearsLeft: number,
+  stageCompleted = 0,
+): MilestoneRowState[] {
+  return distributeStagesOverYears(
+    TOWER_SCHEDULE_DEFINITIONS,
+    yearsLeft,
+    stageCompleted,
+  ).map((milestone) => ({
+    id: createMilestoneId(),
+    label: milestone.label,
+    percent: String(milestone.percent),
+    year: String(milestone.year),
+    month: String(milestone.month),
+  }))
 }
 
 export function applyTimelineToRows(
   rows: MilestoneRowState[],
   yearsLeft: number,
+  stageCompleted = 0,
 ): MilestoneRowState[] {
   const distributed = distributeStagesOverYears(
     rows.map((row) => ({
@@ -101,12 +120,13 @@ export function applyTimelineToRows(
       percent: Number(row.percent) || 0,
     })),
     yearsLeft,
+    stageCompleted,
   )
 
   return rows.map((row, index) => ({
     ...row,
-    year: String(distributed[index]?.year ?? 1),
-    month: String(distributed[index]?.month ?? 1),
+    year: String(distributed[index]?.year ?? 0),
+    month: String(distributed[index]?.month ?? 0),
   }))
 }
 
@@ -163,7 +183,7 @@ export function bankDisbursedAmountFromClp(
 
 export function parseMilestoneRows(
   rows: MilestoneRowState[],
-  loanYears: number,
+  maxDisbursementYear: number,
 ): { milestones: DisbursementMilestone[]; totalPercent: number } | null {
   const milestones: DisbursementMilestone[] = []
   let totalPercent = 0
@@ -178,11 +198,13 @@ export function parseMilestoneRows(
       percent <= 0 ||
       percent > 100 ||
       !Number.isInteger(year) ||
-      year < 1 ||
-      year > loanYears ||
+      year < 0 ||
+      year > maxDisbursementYear ||
       !Number.isInteger(month) ||
-      month < 1 ||
-      month > 12
+      month < 0 ||
+      month > 12 ||
+      (year === 0 && month !== 0) ||
+      (year > 0 && month < 1)
     ) {
       return null
     }
@@ -208,12 +230,14 @@ export function buildDisbursementMap(
   sanctionedAmount: number,
   milestones: DisbursementMilestone[],
   contributionPercent = 0,
+  stageCompleted = 0,
 ): Map<number, number> {
   const map = new Map<number, number>()
   let cumulativeClp = 0
   let previousBankCumulative = 0
 
-  for (const milestone of milestones) {
+  for (let index = 0; index < milestones.length; index += 1) {
+    const milestone = milestones[index]
     cumulativeClp += milestone.percent
     const bankCumulative = bankDisbursedPercentFromClp(
       cumulativeClp,
@@ -222,7 +246,9 @@ export function buildDisbursementMap(
     const tranchePercent = bankCumulative - previousBankCumulative
     previousBankCumulative = bankCumulative
 
-    if (tranchePercent <= 0) continue
+    if (index < stageCompleted || tranchePercent <= 0 || milestone.year <= 0) {
+      continue
+    }
 
     const monthIndex = milestoneToMonthIndex(milestone.year, milestone.month)
     const amount = Math.round((sanctionedAmount * tranchePercent) / 100)
@@ -250,7 +276,7 @@ export function validateMilestones(
       valid: false,
       totalPercent: 0,
       message:
-        'Each milestone needs a payment %, year (within loan tenure), and month (1–12).',
+        'Each milestone needs a payment %, year (within project completion window), and month (1–12).',
     }
   }
 

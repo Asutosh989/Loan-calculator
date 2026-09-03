@@ -81,7 +81,7 @@ function App() {
   const [projectYearsLeft, setProjectYearsLeft] = useState('2')
   const [stageCompleted, setStageCompleted] = useState('7')
   const [milestones, setMilestones] = useState<MilestoneRowState[]>(() =>
-    towerScheduleToRows(4),
+    towerScheduleToRows(2, 7),
   )
   const [tranchePercent, setTranchePercent] = useState('25')
   const [fullyDisbursedByYear, setFullyDisbursedByYear] = useState('2')
@@ -98,9 +98,12 @@ function App() {
   const contribution = parsePercent(contributionPercent)
   const customEmiParsed = parseAmount(customEmi)
   const customEmiValue =
-    useCustomEmi && customEmiParsed !== null ? customEmiParsed : undefined
+    useCustomEmi && customEmiParsed !== null && customEmiParsed > 0
+      ? customEmiParsed
+      : undefined
   const tranche = parsePercent(tranchePercent)
   const disbursementYears = parsePositiveInt(fullyDisbursedByYear)
+  const projectYearsLeftNum = parsePositiveInt(projectYearsLeft)
   const emiIncrease = parseNonNegativeNumber(emiIncreasePercent)
   const extraEmis = parseNonNegativeInt(extraEmisPerYear)
   const stageCompletedNum = parseNonNegativeInt(stageCompleted) ?? 0
@@ -143,9 +146,9 @@ function App() {
   const disbursedAmountStr = disbursed !== null ? String(disbursed) : ''
 
   const parsedMilestones = useMemo(() => {
-    if (!Number.isInteger(years) || years <= 0) return null
-    return parseMilestoneRows(milestones, years)
-  }, [milestones, years])
+    if (projectYearsLeftNum === null) return null
+    return parseMilestoneRows(milestones, projectYearsLeftNum)
+  }, [milestones, projectYearsLeftNum])
 
   const milestoneValidation = useMemo(
     () => validateMilestones(parsedMilestones),
@@ -175,7 +178,6 @@ function App() {
     rate >= 0 &&
     Number.isInteger(years) &&
     years > 0 &&
-    (!useCustomEmi || customEmiParsed !== null) &&
     adjustmentsValid &&
     agreement !== null &&
     contribution !== null
@@ -225,10 +227,12 @@ function App() {
         sanctioned,
         parsedMilestones.milestones,
         contribution ?? 0,
+        stageCompletedNum,
       )
       return buildMilestoneDisbursementSchedule({
         sanctionedAmount: sanctioned,
         disbursementByMonth,
+        initialDisbursedAmount: disbursed ?? 0,
         annualRate: rate,
         years,
         customEmi: customEmiValue,
@@ -261,24 +265,37 @@ function App() {
     years,
     customEmiValue,
     adjustments,
+    contribution,
+    stageCompletedNum,
+    disbursed,
   ])
 
+  const showBreakupSection =
+    inputsValid && sanctionedResult !== null
+
   const showBreakupComparison =
-    stagedDisbursementEnabled &&
-    sanctionedResult !== null &&
-    stagedResult !== null
+    showBreakupSection && stagedDisbursementEnabled && stagedResult !== null
 
   function handleProjectYearsLeftChange(value: string) {
     setProjectYearsLeft(value)
     const yearsLeft = parsePositiveInt(value)
+    const stage = parseNonNegativeInt(stageCompleted) ?? 0
     if (yearsLeft !== null) {
-      setMilestones((current) => applyTimelineToRows(current, yearsLeft))
+      setMilestones((current) => applyTimelineToRows(current, yearsLeft, stage))
     }
   }
 
   function handleRedistributeTimeline() {
-    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 4
-    setMilestones((current) => applyTimelineToRows(current, yearsLeft))
+    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 2
+    const stage = parseNonNegativeInt(stageCompleted) ?? 0
+    setMilestones((current) => applyTimelineToRows(current, yearsLeft, stage))
+  }
+
+  function handleStageCompletedChange(value: string) {
+    setStageCompleted(value)
+    const stage = parseNonNegativeInt(value) ?? 0
+    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 2
+    setMilestones((current) => applyTimelineToRows(current, yearsLeft, stage))
   }
 
   const stagedSubtitle =
@@ -342,7 +359,7 @@ function App() {
         onDisbursementPlanModeChange={setDisbursementPlanMode}
         onMilestonesChange={setMilestones}
         onProjectYearsLeftChange={handleProjectYearsLeftChange}
-        onStageCompletedChange={setStageCompleted}
+        onStageCompletedChange={handleStageCompletedChange}
         onRedistributeTimeline={handleRedistributeTimeline}
         onTranchePercentChange={setTranchePercent}
         onFullyDisbursedByYearChange={setFullyDisbursedByYear}
@@ -378,12 +395,14 @@ function App() {
       {stagedDisbursementEnabled &&
         disbursementPlanMode === 'milestone' &&
         parsedMilestones !== null &&
-        sanctioned !== null && (
+        sanctioned !== null &&
+        projectYearsLeftNum !== null && (
           <DisbursementTimeline
             milestones={parsedMilestones.milestones}
             sanctionedAmount={sanctioned}
-            loanYears={years}
+            projectYearsLeft={projectYearsLeftNum}
             stageCompleted={stageCompletedNum}
+            contributionPercent={contribution ?? 0}
           />
         )}
 
@@ -405,25 +424,57 @@ function App() {
             subtitle={stagedSubtitle}
             principal={sanctioned ?? 0}
             result={stagedResult}
+            variant={
+              disbursementPlanMode === 'milestone' ? 'milestone' : 'standard'
+            }
+            initialDisbursedAmount={
+              disbursementPlanMode === 'milestone' ? (disbursed ?? 0) : undefined
+            }
+            initialDisbursedPercent={
+              disbursementPlanMode === 'milestone'
+                ? bankDisbursedPercent
+                : undefined
+            }
           />
         )}
       </section>
 
-      {showBreakupComparison && (
+      {showBreakupSection && (
         <section className="breakup-section">
           <BreakupViewToggle
             viewMode={breakupViewMode}
             onChange={setBreakupViewMode}
           />
-          <ComparisonTables
-            sanctionedTitle="100% disbursed — EMI breakup"
-            alternateTitle={alternateBreakupTitle}
-            sanctionedResult={sanctionedResult}
-            alternateResult={stagedResult}
-            showComparison
-            viewMode={breakupViewMode}
-            showDisbursementOnAlternate={disbursementPlanMode === 'milestone'}
-          />
+          {showBreakupComparison && stagedResult ? (
+            <ComparisonTables
+              sanctionedTitle="100% disbursed — EMI breakup"
+              alternateTitle={alternateBreakupTitle}
+              sanctionedResult={sanctionedResult}
+              alternateResult={stagedResult}
+              showComparison
+              viewMode={breakupViewMode}
+              showDisbursementOnAlternate={disbursementPlanMode === 'milestone'}
+              initialDisbursedAmount={
+                disbursementPlanMode === 'milestone' ? (disbursed ?? 0) : undefined
+              }
+              initialDisbursedPercent={
+                disbursementPlanMode === 'milestone'
+                  ? bankDisbursedPercent
+                  : undefined
+              }
+            />
+          ) : (
+            sanctionedResult && (
+              <ComparisonTables
+                sanctionedTitle="100% disbursed — EMI breakup"
+                alternateTitle={alternateBreakupTitle}
+                sanctionedResult={sanctionedResult}
+                alternateResult={sanctionedResult}
+                showComparison={false}
+                viewMode={breakupViewMode}
+              />
+            )
+          )}
         </section>
       )}
     </div>

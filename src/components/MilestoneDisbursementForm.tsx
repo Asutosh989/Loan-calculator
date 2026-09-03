@@ -37,7 +37,6 @@ export function MilestoneDisbursementForm({
   planMode,
   milestones,
   totalPercent,
-  loanYears,
   projectYearsLeft,
   stageCompleted,
   clpCumulativePercent,
@@ -136,7 +135,10 @@ export function MilestoneDisbursementForm({
               className="btn-secondary"
               onClick={() =>
                 onMilestonesChange(
-                  towerScheduleToRows(Number(projectYearsLeft) || 4),
+                  towerScheduleToRows(
+                    Number(projectYearsLeft) || 2,
+                    Number(stageCompleted) || 0,
+                  ),
                 )
               }
             >
@@ -216,36 +218,44 @@ export function MilestoneDisbursementForm({
                         />
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          min="1"
-                          max={loanYears}
-                          step="1"
-                          value={row.year}
-                          onChange={(event) =>
-                            onMilestonesChange(
-                              updateRow(milestones, row.id, {
-                                year: event.target.value,
-                              }),
-                            )
-                          }
-                        />
+                        {isCompleted ? (
+                          <span className="milestone-done-label">Done</span>
+                        ) : (
+                          <input
+                            type="number"
+                            min="1"
+                            max={Number(projectYearsLeft) || 1}
+                            step="1"
+                            value={row.year}
+                            onChange={(event) =>
+                              onMilestonesChange(
+                                updateRow(milestones, row.id, {
+                                  year: event.target.value,
+                                }),
+                              )
+                            }
+                          />
+                        )}
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          min="1"
-                          max="12"
-                          step="1"
-                          value={row.month}
-                          onChange={(event) =>
-                            onMilestonesChange(
-                              updateRow(milestones, row.id, {
-                                month: event.target.value,
-                              }),
-                            )
-                          }
-                        />
+                        {isCompleted ? (
+                          <span className="milestone-done-label">—</span>
+                        ) : (
+                          <input
+                            type="number"
+                            min="1"
+                            max="12"
+                            step="1"
+                            value={row.month}
+                            onChange={(event) =>
+                              onMilestonesChange(
+                                updateRow(milestones, row.id, {
+                                  month: event.target.value,
+                                }),
+                              )
+                            }
+                          />
+                        )}
                       </td>
                       <td>
                         <button

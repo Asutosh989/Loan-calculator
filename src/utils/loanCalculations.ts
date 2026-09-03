@@ -160,6 +160,7 @@ export interface StagedDisbursementInputs {
 export interface MilestoneDisbursementInputs {
   sanctionedAmount: number
   disbursementByMonth: Map<number, number>
+  initialDisbursedAmount?: number
   annualRate: number
   years: number
   customEmi?: number
@@ -173,6 +174,7 @@ function runDisbursementSchedule(
   customEmi: number | undefined,
   adjustments: ScheduleAdjustments | undefined,
   getDisbursementForMonth: (month: number) => number,
+  initialDisbursedAmount = 0,
 ): LoanResult {
   const monthlyRate = annualRate / 12 / 100
   const months = years * 12
@@ -182,8 +184,8 @@ function runDisbursementSchedule(
   const extraEmisPerYear = adjustments?.extraEmisPerYear ?? 0
 
   const schedule: MonthlyPayment[] = []
-  let balance = 0
-  let cumulativeDisbursed = 0
+  let balance = initialDisbursedAmount
+  let cumulativeDisbursed = initialDisbursedAmount
 
   for (let month = 1; month <= months; month += 1) {
     const year = Math.floor((month - 1) / 12) + 1
@@ -227,6 +229,7 @@ export function buildMilestoneDisbursementSchedule(
   const {
     sanctionedAmount,
     disbursementByMonth,
+    initialDisbursedAmount = 0,
     annualRate,
     years,
     customEmi,
@@ -240,6 +243,7 @@ export function buildMilestoneDisbursementSchedule(
     customEmi,
     adjustments,
     (month) => disbursementByMonth.get(month) ?? 0,
+    initialDisbursedAmount,
   )
 }
 

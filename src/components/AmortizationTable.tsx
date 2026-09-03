@@ -167,6 +167,8 @@ interface AmortizationTableProps {
   viewMode: BreakupViewMode
   compact?: boolean
   showDisbursement?: boolean
+  initialDisbursedAmount?: number
+  initialDisbursedPercent?: number
 }
 
 export function AmortizationTable({
@@ -175,16 +177,34 @@ export function AmortizationTable({
   viewMode,
   compact = false,
   showDisbursement = false,
+  initialDisbursedAmount,
+  initialDisbursedPercent,
 }: AmortizationTableProps) {
   if (result.schedule.length === 0) {
     return null
   }
+
+  const showDisbursedBanner =
+    showDisbursement &&
+    initialDisbursedAmount !== undefined &&
+    initialDisbursedPercent !== undefined
 
   return (
     <section
       className={`amortization-table${compact ? ' amortization-table--compact' : ''}`}
     >
       <h3>{title}</h3>
+      {showDisbursedBanner && (
+        <p className="amortization-table__disbursed-note">
+          Already disbursed today:{' '}
+          <strong>{formatCurrency(initialDisbursedAmount)}</strong> (
+          {initialDisbursedPercent % 1 === 0
+            ? initialDisbursedPercent
+            : initialDisbursedPercent.toFixed(1)}
+          % of sanctioned loan). Remaining tranches appear in the Disbursed /
+          Cumulative columns below.
+        </p>
+      )}
       <div className="table-scroll">
         {viewMode === 'yearly' ? (
           <YearlyTable
@@ -211,6 +231,8 @@ interface ComparisonTablesProps {
   showComparison: boolean
   viewMode: BreakupViewMode
   showDisbursementOnAlternate?: boolean
+  initialDisbursedAmount?: number
+  initialDisbursedPercent?: number
 }
 
 export function ComparisonTables({
@@ -221,6 +243,8 @@ export function ComparisonTables({
   showComparison,
   viewMode,
   showDisbursementOnAlternate = false,
+  initialDisbursedAmount,
+  initialDisbursedPercent,
 }: ComparisonTablesProps) {
   if (showComparison) {
     return (
@@ -235,6 +259,8 @@ export function ComparisonTables({
           result={alternateResult}
           viewMode={viewMode}
           showDisbursement={showDisbursementOnAlternate}
+          initialDisbursedAmount={initialDisbursedAmount}
+          initialDisbursedPercent={initialDisbursedPercent}
         />
       </section>
     )

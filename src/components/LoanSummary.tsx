@@ -6,6 +6,9 @@ interface LoanSummaryProps {
   subtitle: string
   principal: number
   result: LoanResult | null
+  initialDisbursedAmount?: number
+  initialDisbursedPercent?: number
+  variant?: 'standard' | 'milestone'
 }
 
 export function LoanSummary({
@@ -13,6 +16,9 @@ export function LoanSummary({
   subtitle,
   principal,
   result,
+  initialDisbursedAmount,
+  initialDisbursedPercent,
+  variant = 'standard',
 }: LoanSummaryProps) {
   if (!result) {
     return (
@@ -26,11 +32,12 @@ export function LoanSummary({
     )
   }
 
+  const totalToPay =
+    principal + result.totalInterest + result.totalExtraPayment
   const interestShare =
-    result.totalPayment > 0
-      ? (result.totalInterest / result.totalPayment) * 100
-      : 0
-  const principalShare = 100 - interestShare
+    totalToPay > 0 ? (result.totalInterest / totalToPay) * 100 : 0
+  const principalShare =
+    totalToPay > 0 ? (principal / totalToPay) * 100 : 0
 
   return (
     <article className="summary-card">
@@ -41,9 +48,23 @@ export function LoanSummary({
 
       <dl className="summary-stats">
         <div>
-          <dt>Principal</dt>
+          <dt>Sanctioned loan</dt>
           <dd>{formatCurrency(principal)}</dd>
         </div>
+        {variant === 'milestone' &&
+          initialDisbursedAmount !== undefined &&
+          initialDisbursedPercent !== undefined && (
+            <div>
+              <dt>Already disbursed</dt>
+              <dd>
+                {formatCurrency(initialDisbursedAmount)} (
+                {initialDisbursedPercent % 1 === 0
+                  ? initialDisbursedPercent
+                  : initialDisbursedPercent.toFixed(1)}
+                %)
+              </dd>
+            </div>
+          )}
         <div>
           <dt>Monthly EMI</dt>
           <dd>{formatCurrencyDetailed(result.monthlyEmi)}</dd>
@@ -58,13 +79,14 @@ export function LoanSummary({
           <dd>{formatCurrency(result.totalInterest)}</dd>
         </div>
         <div>
-          <dt>Total payment</dt>
-          <dd>{formatCurrency(result.totalPayment)}</dd>
-          {result.totalExtraPayment > 0 && (
-            <dd className="summary-note">
-              Includes {formatCurrency(result.totalExtraPayment)} in extra EMIs
-            </dd>
-          )}
+          <dt>Total to pay</dt>
+          <dd>{formatCurrency(totalToPay)}</dd>
+          <dd className="summary-note">
+            Loan {formatCurrency(principal)} + interest{' '}
+            {formatCurrency(result.totalInterest)}
+            {result.totalExtraPayment > 0 &&
+              ` + extras ${formatCurrency(result.totalExtraPayment)}`}
+          </dd>
         </div>
       </dl>
 
@@ -80,7 +102,7 @@ export function LoanSummary({
       </div>
       <p className="split-legend">
         <span>Interest {interestShare.toFixed(1)}%</span>
-        <span>Principal {principalShare.toFixed(1)}%</span>
+        <span>Loan {principalShare.toFixed(1)}%</span>
       </p>
     </article>
   )

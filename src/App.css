@@ -213,6 +213,12 @@
   color: #059669;
 }
 
+.milestone-done-label {
+  font-size: 0.8125rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
 .checkbox-field {
   grid-column: 1 / -1;
   display: flex;
@@ -346,6 +352,21 @@
 .amortization-table h3 {
   margin: 0 0 1rem;
   font-size: 1rem;
+}
+
+.amortization-table__disbursed-note {
+  margin: -0.35rem 0 1rem;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+}
+
+.amortization-table__disbursed-note strong {
+  color: var(--text-h);
 }
 
 .table-scroll,
