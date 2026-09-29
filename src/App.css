@@ -764,3 +764,121 @@
 .timeline-list span {
   color: var(--text);
 }
+
+.milestone-payment-breakup {
+  margin: 1.5rem 0 2rem;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.milestone-payment-breakup__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+}
+
+.milestone-payment-breakup__header h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.milestone-payment-breakup__totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin: 0;
+}
+
+.milestone-payment-breakup__totals div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.milestone-payment-breakup__totals dt {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.milestone-payment-breakup__totals dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.milestone-payment-breakup__of {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.milestone-payment-breakup__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.milestone-payment-breakup__panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  background: var(--bg);
+}
+
+.milestone-payment-breakup__panel h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  color: var(--text-h);
+}
+
+.milestone-payment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.milestone-payment-table th,
+.milestone-payment-table td {
+  padding: 0.5rem 0.55rem;
+  text-align: right;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.milestone-payment-table th:first-child,
+.milestone-payment-table td:first-child {
+  text-align: left;
+  white-space: normal;
+  min-width: 8rem;
+}
+
+.milestone-payment-table th {
+  font-weight: 600;
+  color: var(--text-h);
+  background: var(--code-bg);
+}
+
+.milestone-payment-table__row--completed {
+  background: rgba(5, 150, 105, 0.06);
+}
+
+.milestone-payment-table__row--current {
+  background: var(--accent-bg);
+}
+
+.milestone-payment-breakup__footnote {
+  margin: 1rem 0 0;
+}
+
+@media (max-width: 960px) {
+  .milestone-payment-breakup__grid {
+    grid-template-columns: 1fr;
+  }
+}

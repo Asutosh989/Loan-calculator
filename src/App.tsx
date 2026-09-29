@@ -5,6 +5,7 @@ import {
   type BreakupViewMode,
 } from './components/AmortizationTable'
 import { DisbursementTimeline } from './components/DisbursementTimeline'
+import { MilestonePaymentBreakup } from './components/MilestonePaymentBreakup'
 import type { DisbursementPlanMode } from './components/MilestoneDisbursementForm'
 import { LoanForm } from './components/LoanForm'
 import { LoanSummary } from './components/LoanSummary'
@@ -19,6 +20,7 @@ import {
 import {
   applyTimelineToRows,
   bankDisbursedPercentFromClp,
+  bankDisbursedAmountFromClp,
   buildDisbursementMap,
   cumulativePercentFromRows,
   parseMilestoneRows,
@@ -31,6 +33,7 @@ import {
   DEFAULT_AGREEMENT_VALUE,
   type Gender,
 } from './utils/propertyCost'
+import { buildMilestonePaymentBreakup } from './utils/milestoneContributions'
 import { parseRupeeAmount } from './utils/indianCurrency'
 import './App.css'
 
@@ -71,20 +74,20 @@ function App() {
     String(DEFAULT_AGREEMENT_VALUE),
   )
   const [gender, setGender] = useState<Gender>('female')
-  const [contributionPercent, setContributionPercent] = useState('10')
-  const [interestRate, setInterestRate] = useState('7.2')
+  const [contributionPercent, setContributionPercent] = useState('11')
+  const [interestRate, setInterestRate] = useState('7')
   const [tenureYears, setTenureYears] = useState('20')
   const [stagedDisbursementEnabled, setStagedDisbursementEnabled] =
     useState(true)
   const [disbursementPlanMode, setDisbursementPlanMode] =
     useState<DisbursementPlanMode>('milestone')
-  const [projectYearsLeft, setProjectYearsLeft] = useState('2')
-  const [stageCompleted, setStageCompleted] = useState('7')
+  const [projectYearsLeft, setProjectYearsLeft] = useState('3')
+  const [stageCompleted, setStageCompleted] = useState('4')
   const [milestones, setMilestones] = useState<MilestoneRowState[]>(() =>
-    towerScheduleToRows(2, 7),
+    towerScheduleToRows(3, 7),
   )
   const [tranchePercent, setTranchePercent] = useState('25')
-  const [fullyDisbursedByYear, setFullyDisbursedByYear] = useState('2')
+  const [fullyDisbursedByYear, setFullyDisbursedByYear] = useState('3')
   const [useCustomEmi, setUseCustomEmi] = useState(false)
   const [customEmi, setCustomEmi] = useState('')
   const [emiIncreasePercent, setEmiIncreasePercent] = useState('0')
@@ -124,16 +127,13 @@ function App() {
   )
 
   const bankDisbursedPercent = useMemo(
-    () =>
-      contribution !== null
-        ? bankDisbursedPercentFromClp(clpCumulativePercent, contribution)
-        : clpCumulativePercent,
-    [clpCumulativePercent, contribution],
+    () => bankDisbursedPercentFromClp(clpCumulativePercent),
+    [clpCumulativePercent],
   )
 
   const disbursed =
     sanctioned !== null
-      ? Math.round((sanctioned * bankDisbursedPercent) / 100)
+      ? bankDisbursedAmountFromClp(sanctioned, clpCumulativePercent)
       : null
 
   const disbursedPercentStr =
@@ -149,6 +149,30 @@ function App() {
     if (projectYearsLeftNum === null) return null
     return parseMilestoneRows(milestones, projectYearsLeftNum)
   }, [milestones, projectYearsLeftNum])
+
+  const milestonePaymentBreakup = useMemo(() => {
+    if (
+      !propertyCost ||
+      parsedMilestones === null ||
+      sanctioned === null
+    ) {
+      return null
+    }
+    return buildMilestonePaymentBreakup(
+      parsedMilestones.milestones,
+      propertyCost.agreementContribution + propertyCost.gstContribution,
+      sanctioned,
+      stageCompletedNum,
+    )
+  }, [
+    propertyCost,
+    parsedMilestones,
+    sanctioned,
+    contribution,
+    stageCompletedNum,
+  ])
+
+  console.log('milestonePaymentBreakup', milestonePaymentBreakup)
 
   const milestoneValidation = useMemo(
     () => validateMilestones(parsedMilestones),
@@ -226,7 +250,6 @@ function App() {
       const disbursementByMonth = buildDisbursementMap(
         sanctioned,
         parsedMilestones.milestones,
-        contribution ?? 0,
         stageCompletedNum,
       )
       return buildMilestoneDisbursementSchedule({
@@ -286,7 +309,7 @@ function App() {
   }
 
   function handleRedistributeTimeline() {
-    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 2
+    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 3
     const stage = parseNonNegativeInt(stageCompleted) ?? 0
     setMilestones((current) => applyTimelineToRows(current, yearsLeft, stage))
   }
@@ -294,7 +317,7 @@ function App() {
   function handleStageCompletedChange(value: string) {
     setStageCompleted(value)
     const stage = parseNonNegativeInt(value) ?? 0
-    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 2
+    const yearsLeft = parsePositiveInt(projectYearsLeft) ?? 3
     setMilestones((current) => applyTimelineToRows(current, yearsLeft, stage))
   }
 
@@ -402,7 +425,17 @@ function App() {
             sanctionedAmount={sanctioned}
             projectYearsLeft={projectYearsLeftNum}
             stageCompleted={stageCompletedNum}
-            contributionPercent={contribution ?? 0}
+          />
+        )}
+
+      {stagedDisbursementEnabled &&
+        disbursementPlanMode === 'milestone' &&
+        milestonePaymentBreakup &&
+        propertyCost && (
+          <MilestonePaymentBreakup
+            rows={milestonePaymentBreakup.rows}
+            totals={milestonePaymentBreakup.totals}
+            stageCompleted={stageCompletedNum}
           />
         )}
 

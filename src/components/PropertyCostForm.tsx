@@ -35,7 +35,7 @@ export function PropertyCostForm({
           <CurrencyInput
             value={agreementValue}
             onChange={onAgreementValueChange}
-            placeholder="₹1,44,63,100"
+            placeholder="₹1,42,61,700"
           />
         </label>
 
@@ -74,7 +74,7 @@ export function PropertyCostForm({
             onChange={(event) =>
               onContributionPercentChange(event.target.value)
             }
-            placeholder="e.g. 10"
+            placeholder="e.g. 11"
           />
           <span className="field-hint">
             Includes {contributionPercent || '—'}% of agreement,{' '}

@@ -161,24 +161,20 @@ export function cumulativePercentFromRows(
   }, 0)
 }
 
-/** Bank loan share after excluding the buyer's contribution at each CLP stage. */
+/** Share of sanctioned loan disbursed when CLP progress reaches this cumulative %. */
 export function bankDisbursedPercentFromClp(
   clpCumulativePercent: number,
-  contributionPercent: number,
 ): number {
-  return Math.max(0, clpCumulativePercent - contributionPercent)
+  return Math.max(0, Math.min(100, clpCumulativePercent))
 }
 
 export function bankDisbursedAmountFromClp(
   sanctionedAmount: number,
   clpCumulativePercent: number,
-  contributionPercent: number,
 ): number {
-  const percent = bankDisbursedPercentFromClp(
-    clpCumulativePercent,
-    contributionPercent,
+  return Math.round(
+    (sanctionedAmount * bankDisbursedPercentFromClp(clpCumulativePercent)) / 100,
   )
-  return Math.round((sanctionedAmount * percent) / 100)
 }
 
 export function parseMilestoneRows(
@@ -229,29 +225,18 @@ export function parseMilestoneRows(
 export function buildDisbursementMap(
   sanctionedAmount: number,
   milestones: DisbursementMilestone[],
-  contributionPercent = 0,
   stageCompleted = 0,
 ): Map<number, number> {
   const map = new Map<number, number>()
-  let cumulativeClp = 0
-  let previousBankCumulative = 0
 
   for (let index = 0; index < milestones.length; index += 1) {
     const milestone = milestones[index]
-    cumulativeClp += milestone.percent
-    const bankCumulative = bankDisbursedPercentFromClp(
-      cumulativeClp,
-      contributionPercent,
-    )
-    const tranchePercent = bankCumulative - previousBankCumulative
-    previousBankCumulative = bankCumulative
-
-    if (index < stageCompleted || tranchePercent <= 0 || milestone.year <= 0) {
+    if (index < stageCompleted || milestone.year <= 0) {
       continue
     }
 
+    const amount = Math.round((sanctionedAmount * milestone.percent) / 100)
     const monthIndex = milestoneToMonthIndex(milestone.year, milestone.month)
-    const amount = Math.round((sanctionedAmount * tranchePercent) / 100)
     map.set(monthIndex, (map.get(monthIndex) ?? 0) + amount)
   }
 

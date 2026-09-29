@@ -1,8 +1,5 @@
 import type { DisbursementMilestone } from '../utils/milestones'
-import {
-  bankDisbursedPercentFromClp,
-  milestoneToMonthIndex,
-} from '../utils/milestones'
+import { milestoneToMonthIndex } from '../utils/milestones'
 import { formatCurrency } from '../utils/loanCalculations'
 
 interface DisbursementTimelineProps {
@@ -10,7 +7,6 @@ interface DisbursementTimelineProps {
   sanctionedAmount: number
   projectYearsLeft: number
   stageCompleted: number
-  contributionPercent: number
 }
 
 export function DisbursementTimeline({
@@ -18,7 +14,6 @@ export function DisbursementTimeline({
   sanctionedAmount,
   projectYearsLeft,
   stageCompleted,
-  contributionPercent,
 }: DisbursementTimelineProps) {
   if (milestones.length === 0) {
     return null
@@ -39,26 +34,6 @@ export function DisbursementTimeline({
     milestones.map((milestone, index) => [milestone.id, index + 1]),
   )
 
-  let cumulativeClp = 0
-  let previousBankCumulative = 0
-  const bankAmountById = new Map<string, number>()
-  for (let index = 0; index < milestones.length; index += 1) {
-    const milestone = milestones[index]
-    cumulativeClp += milestone.percent
-    const bankCumulative = bankDisbursedPercentFromClp(
-      cumulativeClp,
-      contributionPercent,
-    )
-    const tranchePercent = bankCumulative - previousBankCumulative
-    previousBankCumulative = bankCumulative
-    if (index >= stageCompleted && tranchePercent > 0) {
-      bankAmountById.set(
-        milestone.id,
-        Math.round((sanctionedAmount * tranchePercent) / 100),
-      )
-    }
-  }
-
   const completedLabel =
     stageCompleted > 0
       ? milestones[stageCompleted - 1]?.label ?? `Stage ${stageCompleted}`
@@ -71,14 +46,18 @@ export function DisbursementTimeline({
         {completedLabel ? (
           <>
             Completed: <strong>{completedLabel}</strong> (stage {stageCompleted}{' '}
-            of {milestones.length}). Remaining stages fit within{' '}
-            <strong>{projectYearsLeft}</strong> year
+            of {milestones.length}). Remaining bank releases ({' '}
+            {milestones
+              .slice(stageCompleted)
+              .reduce((s, m) => s + m.percent, 0)
+              .toFixed(0)}
+            % of loan) fit within <strong>{projectYearsLeft}</strong> year
             {projectYearsLeft === 1 ? '' : 's'} from today.
           </>
         ) : (
           <>
-            Remaining stages spread over <strong>{projectYearsLeft}</strong>{' '}
-            year{projectYearsLeft === 1 ? '' : 's'} from today.
+            Bank releases spread over <strong>{projectYearsLeft}</strong> year
+            {projectYearsLeft === 1 ? '' : 's'} from today.
           </>
         )}
       </p>
@@ -108,7 +87,9 @@ export function DisbursementTimeline({
           </div>
           <ul className="timeline-list">
             {sorted.map((milestone) => {
-              const amount = bankAmountById.get(milestone.id) ?? 0
+              const amount = Math.round(
+                (sanctionedAmount * milestone.percent) / 100,
+              )
               const stageIndex = stageIndexById.get(milestone.id) ?? 0
               const isNext = stageIndex === stageCompleted + 1
 
@@ -121,8 +102,8 @@ export function DisbursementTimeline({
                     Stage {stageIndex}: {milestone.label || 'Milestone'}
                   </strong>
                   <span>
-                    Bank release · Year {milestone.year}, Month {milestone.month}{' '}
-                    · {formatCurrency(amount)}
+                    {milestone.percent}% of loan · Year {milestone.year}, Month{' '}
+                    {milestone.month} · {formatCurrency(amount)}
                     {isNext && ' · Next'}
                   </span>
                 </li>

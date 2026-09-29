@@ -22,7 +22,7 @@ export interface PropertyCostBreakdown {
   bankLoanAmount: number
 }
 
-export const DEFAULT_AGREEMENT_VALUE = 14463100
+export const DEFAULT_AGREEMENT_VALUE = 14261700
 
 export function calculatePropertyCost(
   agreementValue: number,

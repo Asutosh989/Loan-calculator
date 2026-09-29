@@ -146,8 +146,8 @@ export function LoanForm({
             />
             {stageBasedDisbursement && (
               <span className="field-hint field-hint--accent">
-                {clpCumulativePercent.toFixed(1)}% construction due minus your{' '}
-                {contributionPercent}% contribution
+                {clpCumulativePercent.toFixed(1)}% of sanctioned loan disbursed
+                (same % of your contribution paid to date)
               </span>
             )}
           </label>
@@ -282,7 +282,6 @@ export function LoanForm({
           stageCompleted={stageCompleted}
           clpCumulativePercent={clpCumulativePercent}
           bankDisbursedPercent={bankDisbursedPercent}
-          contributionPercent={contributionPercent}
           onPlanModeChange={onDisbursementPlanModeChange}
           onMilestonesChange={onMilestonesChange}
           onProjectYearsLeftChange={onProjectYearsLeftChange}
